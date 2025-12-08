@@ -1,0 +1,348 @@
+# .NET 构建输出
+bin/
+obj/
+out/
+
+# Visual Studio 相关文件
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# JetBrains Rider
+.idea/
+
+# 用户特定文件
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# 构建结果
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio 2015/2017 缓存/选项目录
+.vs/
+
+# MSTest 测试结果
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# 构建结果的 .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# StyleCop
+StyleCopReport.xml
+
+# 文件由 Visual Studio 自动生成
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Chutzpah 测试文件
+_Chutzpah*
+
+# Visual C++ 缓存文件
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# Visual Studio 分析器
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Visual Studio 跟踪文件
+*.e2e
+
+# TFS 2012 本地工作区
+$tf/
+
+# 自动生成的 VS/MD/Consulo 文件
+ExportedObj/
+.consulo/
+*.csproj.user
+*.unityproj
+*.sln.docstates
+
+# Unity3D 生成的元文件
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D 生成的文件
+Temp/
+UnityGenerated/
+Library/
+Assets/AssetStoreTools*
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# CodeRush 个人设置
+.cr/personal
+
+# Python 工具用于 Visual Studio (PTVS)
+__pycache__/
+*.pyc
+
+# Cake - 取消注释如果您正在使用它
+# tools/**
+# !tools/packages.config
+
+# Tabs Studio
+*.tss
+
+# Telerik 的 JustMock 配置文件
+*.jmconfig
+
+# BizTalk 构建输出
+*.btp.cs
+*.btm.cs
+*.odx.cs
+*.xsd.cs
+
+# OpenCover UI 分析结果
+OpenCover/
+
+# Azure Stream Analytics 本地运行输出
+ASALocalRun/
+
+# MSBuild 二进制和结构化日志
+*.binlog
+
+# NVidia Nsight GPU 调试器配置文件
+*.nvuser
+
+# MFractors (Xamarin 生产力工具) 工作文件夹
+.mfractor/
+
+# 本地历史记录用于 Visual Studio
+.localhistory/
+
+# BeatPulse 健康检查临时数据库
+healthchecksdb
+
+# 备份文件夹用于包引用转换工具在 Visual Studio 2017
+MigrationBackup/
+
+# Ionide (F# VS Code 工具) 文件夹
+.ionide/
+
+# Fody - 自动生成的 XML 模式
+FodyWeavers.xsd
+
+# NuGet 包
+*.nupkg
+*.snupkg
+packages/
+
+# 包管理器控制台，PowerShell
+[Pp]ackages/
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# MightyMoose
+*.mm.*
+AutoTest.Net/
+
+# Web 工作台 (sass)
+.sass-cache/
+
+# Installshield 输出文件夹
+[Ee]xpress/
+
+# DocProject 是一个文档生成器加载项
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Click-Once 目录
+publish/
+
+# Publish Web 输出
+*.[Pp]ublish.xml
+*.azurePubxml
+# 注意：注释下一行如果您想要检入您的 Web 部署设置，
+# 但数据库连接字符串（及其他敏感信息）将不被加密
+*.pubxml
+*.publishproj
+
+# Microsoft Azure Web App 发布设置。注释下一行如果您想要
+# 检入您的 Azure Web App 发布设置，但敏感信息包含
+# 在这些脚本中将被加密
+PublishScripts/
+
+# Azure 应用服务诊断设置。不要删除。
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+
+# Visual Studio 缓存文件
+# 以 "~" 结尾的文件是临时文件
+*~
+
+# 临时文件
+*.tmp
+*.temp
+
+# 日志文件
+*.log
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 配置文件（可能包含敏感信息）
+appsettings.local.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 编辑器和 IDE
+*.swp
+*.swo
+*~
+
+# 依赖目录
+node_modules/
+
+# 覆盖率报告
+coverage/
+*.coverage
+*.coveragexml
+
+# 性能分析文件
+*.dotMemoryUnit
+
+# Rider
+.idea/
+
+# 用户特定的 VS Code 设置
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/*.code-snippets
+
+# 本地历史记录用于 VS Code
+.history/
+
+# Windows 图像文件缓存
+Thumbs.db
+ehthumbs.db
+
+# 文件夹配置文件
+Desktop.ini
+
+# 回收站用于 Windows
+$RECYCLE.BIN/
+
+# Mac 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 图标必须以两个 \r 结尾
+Icon
+
+# 缩略图
+._*
+
+# 网络存储的文件
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk 
