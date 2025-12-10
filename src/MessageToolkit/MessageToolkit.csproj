@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>MessageToolkit</PackageId>
+    <Title>MessageToolkit</Title>
     <Version>2.0.0</Version>
     <Authors>Lejoy</Authors>
     <Description>
@@ -18,20 +20,20 @@
       - 新增 ModbusFrame 模型
       - 支持批量帧构建和地址合并优化
     </PackageReleaseNotes>
-    <PackageOutputPath>D:\Code\NuGet\ModbusMessageToolkit</PackageOutputPath>
-    <PackageIcon>modbusMessageToolkit.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/lejoyke/MessageToolkit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/lejoyke/MessageToolkit</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>modbus;frame;protocol;serialization;dotnet</PackageTags>
+    <PackageOutputPath>..\..\doc\nuget</PackageOutputPath>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\NuGet\ModbusMessageToolkit\readme.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\..\NuGet\ModbusMessageToolkit\modbusMessageToolkit.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <None Include="readme.md" Pack="True" PackagePath="\" />
+    <None Include="..\..\doc\nuget\icon.png" Pack="True" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
