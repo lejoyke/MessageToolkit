@@ -1,25 +1,24 @@
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Runtime.CompilerServices;
 using MessageToolkit.Abstractions;
 using MessageToolkit.Internal;
 using MessageToolkit.Models;
 
-namespace MessageToolkit;
+namespace MessageToolkit.Benchmarks;
 
 /// <summary>
-/// 协议编解码器实现
+/// 优化前的协议编解码器实现（使用反射）
 /// </summary>
-public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
+public sealed class OldProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
     where TProtocol : struct
 {
     public IProtocolSchema<TProtocol> Schema { get; }
     private readonly Dictionary<string, PropertyInfo> _propertyMap;
     private readonly (ProtocolFieldInfo Info, PropertyInfo Property)[] _orderedProperties;
+    private readonly (ProtocolFieldInfo Info, PropertyInfo Property)[] _booleanProperties;
 
-    public ProtocolCodec(IProtocolSchema<TProtocol> schema)
+    public OldProtocolCodec(IProtocolSchema<TProtocol> schema)
     {
         Schema = schema ?? throw new ArgumentNullException(nameof(schema));
 
@@ -27,10 +26,10 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .ToDictionary(p => p.Name, p => p, StringComparer.Ordinal);
 
-        _orderedProperties = BuildPropertyAccessors(Schema.Properties.Values);
+        _orderedProperties = BuildOrderedProperties(Schema.Properties.Values);
+        _booleanProperties = BuildBooleanPropertyAccessors();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Encode(TProtocol protocol)
     {
         var buffer = new byte[Schema.TotalSize];
@@ -47,7 +46,6 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
         return buffer;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TProtocol Decode(ReadOnlySpan<byte> data)
     {
         if (data.Length < Schema.TotalSize)
@@ -73,14 +71,11 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
         return (TProtocol)boxed;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] EncodeValue<TValue>(TValue value) where TValue : unmanaged
     {
-        var type = typeof(TValue);
-        return EncodeValueInternal(value, type);
+        return EncodeValueInternal(value, typeof(TValue));
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TValue DecodeValue<TValue>(ReadOnlySpan<byte> data) where TValue : unmanaged
     {
         var expectedSize = GetValueSize(typeof(TValue));
@@ -93,7 +88,6 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
         return (TValue)value;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] EncodeField<TValue>(TProtocol protocol, Expression<Func<TProtocol, TValue>> fieldSelector)
     {
         var memberName = GetMemberName(fieldSelector);
@@ -104,81 +98,21 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
         return EncodeValueInternal(value, fieldInfo.FieldType);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<int, bool> ExtractBooleanValues(TProtocol protocol)
     {
-        var result = new Dictionary<int, bool>();
-        foreach (var (Info, Property) in _orderedProperties)
+        var result = new Dictionary<int, bool>(_booleanProperties.Length);
+        foreach (var (fieldInfo, property) in _booleanProperties)
         {
-            if (Info.FieldType == typeof(bool))
+            var value = property.GetValue(protocol);
+            if (value is not bool b)
             {
-                var value = Property.GetValue(protocol);
-                if (value is not bool b)
-                {
-                    continue;
-                }
-
-                result[Info.ByteAddress] = b;
+                continue;
             }
+
+            result[fieldInfo.ByteAddress] = b;
         }
 
         return result;
-    }
-
-    private int GetValueSize(Type type)
-    {
-        if (type == typeof(bool))
-        {
-            return Schema.BooleanType == BooleanRepresentation.Int32 ? 4 : 2;
-        }
-
-        if (type.IsEnum)
-        {
-            return Marshal.SizeOf(Enum.GetUnderlyingType(type));
-        }
-
-        return Marshal.SizeOf(type);
-    }
-
-    private static string GetMemberName<TValue>(Expression<Func<TProtocol, TValue>> expression)
-    {
-        if (expression.Body is MemberExpression memberExpression)
-        {
-            return memberExpression.Member.Name;
-        }
-
-        if (expression.Body is UnaryExpression { Operand: MemberExpression unaryMember })
-        {
-            return unaryMember.Member.Name;
-        }
-
-        throw new ArgumentException("无效的字段访问表达式", nameof(expression));
-    }
-
-    private (ProtocolFieldInfo Info, PropertyInfo Property)[] BuildPropertyAccessors(IEnumerable<ProtocolFieldInfo> fields)
-    {
-        var orderedInfos = fields.OrderBy(f => f.ByteAddress).ToArray();
-        var result = new (ProtocolFieldInfo Info, PropertyInfo Property)[orderedInfos.Length];
-
-        for (var i = 0; i < orderedInfos.Length; i++)
-        {
-            var info = orderedInfos[i];
-            var property = GetProperty(info.Name);
-            result[i] = (info, property);
-        }
-
-        return result;
-    }
-
-
-    private PropertyInfo GetProperty(string name)
-    {
-        if (_propertyMap.TryGetValue(name, out var property))
-        {
-            return property;
-        }
-
-        throw new ArgumentException($"找不到属性 {name}，请确认协议模型仅包含带 Address 特性的公共属性。");
     }
 
     private byte[] EncodeValueInternal(object? value, Type fieldType)
@@ -224,6 +158,79 @@ public sealed class ProtocolCodec<TProtocol> : IProtocolCodec<TProtocol>
             _ when fieldType.IsEnum => Enum.ToObject(fieldType, DecodeValueInternal(data, Enum.GetUnderlyingType(fieldType))),
             _ => throw new NotSupportedException($"不支持的类型 {fieldType.Name}")
         };
+    }
+
+    private int GetValueSize(Type type)
+    {
+        if (type == typeof(bool))
+        {
+            return Schema.BooleanType == BooleanRepresentation.Int32 ? 4 : 2;
+        }
+
+        if (type.IsEnum)
+        {
+            return Marshal.SizeOf(Enum.GetUnderlyingType(type));
+        }
+
+        return Marshal.SizeOf(type);
+    }
+
+    private static string GetMemberName<TValue>(Expression<Func<TProtocol, TValue>> expression)
+    {
+        if (expression.Body is MemberExpression memberExpression)
+        {
+            return memberExpression.Member.Name;
+        }
+
+        if (expression.Body is UnaryExpression { Operand: MemberExpression unaryMember })
+        {
+            return unaryMember.Member.Name;
+        }
+
+        throw new ArgumentException("无效的字段访问表达式", nameof(expression));
+    }
+
+    private (ProtocolFieldInfo Info, PropertyInfo Property)[] BuildOrderedProperties(IEnumerable<ProtocolFieldInfo> fields)
+    {
+        var orderedInfos = fields.OrderBy(f => f.ByteAddress).ToArray();
+        var result = new (ProtocolFieldInfo Info, PropertyInfo Property)[orderedInfos.Length];
+
+        for (var i = 0; i < orderedInfos.Length; i++)
+        {
+            var info = orderedInfos[i];
+            var property = GetProperty(info.Name);
+            result[i] = (info, property);
+        }
+
+        return result;
+    }
+
+    private (ProtocolFieldInfo Info, PropertyInfo Property)[] BuildBooleanPropertyAccessors()
+    {
+        var booleanFields = Schema.BooleanProperties
+            .Select(kvp => Schema.GetFieldInfo(kvp.Key))
+            .OrderBy(f => f.ByteAddress)
+            .ToArray();
+
+        var result = new (ProtocolFieldInfo Info, PropertyInfo Property)[booleanFields.Length];
+        for (var i = 0; i < booleanFields.Length; i++)
+        {
+            var info = booleanFields[i];
+            var property = GetProperty(info.Name);
+            result[i] = (info, property);
+        }
+
+        return result;
+    }
+
+    private PropertyInfo GetProperty(string name)
+    {
+        if (_propertyMap.TryGetValue(name, out var property))
+        {
+            return property;
+        }
+
+        throw new ArgumentException($"找不到属性 {name}，请确认协议模型仅包含带 Address 特性的公共属性。");
     }
 }
 
