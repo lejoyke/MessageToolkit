@@ -26,7 +26,7 @@ public static class ServiceCollectionExtensions
         Endianness endianness = Endianness.BigEndian) where TProtocol : struct
     {
         services.AddSingleton<IProtocolSchema<TProtocol>>(
-            _ => new ProtocolSchema<TProtocol>(booleanType, endianness));
+ _ => new ProtocolSchema<TProtocol>(booleanType, endianness));
         return services;
     }
 }

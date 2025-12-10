@@ -62,7 +62,6 @@ public sealed class ProtocolTests
         var protocol = new DemoProtocol { Speed = 100, Temperature = 10.5f, IsRunning = false, Status = -1 };
 
         var writeFrame = _builder.BuildWriteFrame(protocol);
-        Assert.Equal(ModbusFunctionCode.WriteMultipleRegisters, writeFrame.FunctionCode);
         Assert.Equal((ushort)_schema.StartAddress, writeFrame.StartAddress);
         Assert.Equal(_schema.TotalSize, writeFrame.DataLength);
         Assert.Equal((ushort)(_schema.TotalSize / 2), writeFrame.RegisterCount);
@@ -73,7 +72,6 @@ public sealed class ProtocolTests
     {
         var readAll = _builder.BuildReadRequest();
 
-        Assert.Equal(ModbusFunctionCode.ReadHoldingRegisters, readAll.FunctionCode);
         Assert.Equal((ushort)_schema.StartAddress, readAll.StartAddress);
         Assert.Equal((ushort)_schema.RegisterCount, readAll.RegisterCount);
         Assert.Equal(_schema.TotalSize, readAll.ByteCount);
@@ -84,7 +82,6 @@ public sealed class ProtocolTests
     {
         var readField = _builder.BuildReadRequest(p => p.Temperature);
 
-        Assert.Equal(ModbusFunctionCode.ReadHoldingRegisters, readField.FunctionCode);
         Assert.Equal((ushort)104, readField.StartAddress);
         Assert.Equal((ushort)2, readField.RegisterCount); // float = 4 bytes = 2 registers
         Assert.Equal(4, readField.ByteCount);
@@ -95,7 +92,6 @@ public sealed class ProtocolTests
     {
         var writeFrame = _builder.BuildWriteFrame(p => p.Speed, 1500);
 
-        Assert.Equal(ModbusFunctionCode.WriteMultipleRegisters, writeFrame.FunctionCode);
         Assert.Equal((ushort)100, writeFrame.StartAddress);
         Assert.Equal(4, writeFrame.DataLength); // int = 4 bytes
         Assert.Equal((ushort)2, writeFrame.RegisterCount);
@@ -108,7 +104,7 @@ public sealed class ProtocolTests
             .Write(p => p.Speed, 10)
             .Write(p => p.Temperature, 20.5f)
             .Write(p => p.IsRunning, true)
-            .Write(p => p.Status, (short)2)
+            .Write(p => p.Status, 2)
             .BuildOptimized();
 
         Assert.Single(frames);
@@ -159,12 +155,10 @@ public sealed class ProtocolTests
     public void ReadRequest_Static_Factory_Methods()
     {
         var holdingRequest = ModbusReadRequest.ReadHoldingRegisters(100, 10);
-        Assert.Equal(ModbusFunctionCode.ReadHoldingRegisters, holdingRequest.FunctionCode);
         Assert.Equal((ushort)100, holdingRequest.StartAddress);
         Assert.Equal((ushort)10, holdingRequest.RegisterCount);
 
         var inputRequest = ModbusReadRequest.ReadInputRegisters(200, 5);
-        Assert.Equal(ModbusFunctionCode.ReadInputRegisters, inputRequest.FunctionCode);
         Assert.Equal((ushort)200, inputRequest.StartAddress);
         Assert.Equal((ushort)5, inputRequest.RegisterCount);
     }

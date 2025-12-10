@@ -54,7 +54,6 @@ internal sealed class BatchFrameBuilder<TProtocol> : IBatchFrameBuilder<TProtoco
         foreach (var entry in _pendingWrites)
         {
             collection.Add(new ModbusWriteFrame(
-                ModbusFunctionCode.WriteMultipleRegisters,
                 entry.Address,
                 entry.Data));
         }
@@ -102,7 +101,6 @@ internal sealed class BatchFrameBuilder<TProtocol> : IBatchFrameBuilder<TProtoco
             if (mergeCount == 1)
             {
                 collection.Add(new ModbusWriteFrame(
-                    ModbusFunctionCode.WriteMultipleRegisters,
                     startAddr,
                     startEntry.Data));
             }
@@ -120,7 +118,6 @@ internal sealed class BatchFrameBuilder<TProtocol> : IBatchFrameBuilder<TProtoco
                 }
 
                 collection.Add(new ModbusWriteFrame(
-                    ModbusFunctionCode.WriteMultipleRegisters,
                     startAddr,
                     mergedData));
             }

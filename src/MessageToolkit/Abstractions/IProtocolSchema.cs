@@ -44,6 +44,11 @@ public interface IProtocolSchema<TProtocol> where TProtocol : struct
     IReadOnlyDictionary<string, ProtocolFieldInfo> Fields { get; }
 
     /// <summary>
+    /// 布尔字段信息（仅包含类型为 bool 的字段/属性）
+    /// </summary>
+    IReadOnlyDictionary<string, ProtocolFieldInfo> BooleanFields { get; }
+
+    /// <summary>
     /// 根据字段名获取地址
     /// </summary>
     ushort GetAddress(string fieldName);

@@ -65,8 +65,8 @@
 │  │  序列化层       │    │        模型层               │    │
 │  ├─────────────────┤    ├─────────────────────────────┤    │
 │  │ IProtocolCodec  │    │ ModbusFrame                 │    │
-│  │ ProtocolCodec   │    │ ModbusFunctionCode          │    │
-│  │ ByteConverter   │    │ FrameCollection             │    │
+│  │ ProtocolCodec   │    │ FrameCollection             │    │
+│  │ ByteConverter   │    │                             │    │
 │  └─────────────────┘    └─────────────────────────────┘    │
 │                                                             │
 │  零外部依赖 ✅                                              │
@@ -92,30 +92,10 @@
 namespace MessageToolkit.Models;
 
 /// <summary>
-/// Modbus 功能码枚举
-/// </summary>
-public enum ModbusFunctionCode : byte
-{
-    ReadCoils = 0x01,
-    ReadDiscreteInputs = 0x02,
-    ReadHoldingRegisters = 0x03,
-    ReadInputRegisters = 0x04,
-    WriteSingleCoil = 0x05,
-    WriteSingleRegister = 0x06,
-    WriteMultipleCoils = 0x0F,
-    WriteMultipleRegisters = 0x10
-}
-
-/// <summary>
 /// Modbus 帧信息
 /// </summary>
 public sealed class ModbusFrame
 {
-    /// <summary>
-    /// 功能码
-    /// </summary>
-    public ModbusFunctionCode FunctionCode { get; init; }
-    
     /// <summary>
     /// 起始地址（字节地址）
     /// </summary>
@@ -696,7 +676,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     {
         return new ModbusFrame
         {
-            FunctionCode = ModbusFunctionCode.WriteMultipleRegisters,
             StartAddress = (ushort)Schema.StartAddress,
             Data = Codec.Encode(protocol)
         };
@@ -714,7 +693,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     {
         return new ModbusFrame
         {
-            FunctionCode = ModbusFunctionCode.WriteMultipleRegisters,
             StartAddress = address,
             Data = Codec.EncodeValue(value)
         };
@@ -724,7 +702,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     {
         return new ModbusFrame
         {
-            FunctionCode = ModbusFunctionCode.ReadHoldingRegisters,
             StartAddress = (ushort)Schema.StartAddress,
             Data = [] // 读取帧不需要数据
         };
@@ -780,7 +757,6 @@ internal sealed class BatchFrameBuilder<TProtocol> : IBatchFrameBuilder<TProtoco
         {
             collection.Add(new ModbusFrame
             {
-                FunctionCode = ModbusFunctionCode.WriteMultipleRegisters,
                 StartAddress = address,
                 Data = data
             });
@@ -811,7 +787,6 @@ internal sealed class BatchFrameBuilder<TProtocol> : IBatchFrameBuilder<TProtoco
             
             collection.Add(new ModbusFrame
             {
-                FunctionCode = ModbusFunctionCode.WriteMultipleRegisters,
                 StartAddress = startAddr,
                 Data = [.. combinedData]
             });
@@ -1018,7 +993,6 @@ MessageToolkit/
 │       │   └── AddressAttribute.cs         # 地址特性
 │       ├── Models/
 │       │   ├── ModbusFrame.cs              # Modbus 帧模型
-│       │   ├── ModbusFunctionCode.cs       # 功能码枚举
 │       │   ├── FrameCollection.cs          # 帧集合
 │       │   ├── ProtocolFieldInfo.cs        # 协议字段信息
 │       │   ├── BooleanRepresentation.cs    # 布尔表示枚举

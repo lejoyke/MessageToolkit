@@ -79,7 +79,7 @@ var decoded = builder.Codec.Decode(raw);
 - `IProtocolCodec<T>`：协议编解码
 - `IFrameBuilder<T>`：单帧构建（读/写）
 - `IBatchFrameBuilder<T>`：批量写入帧并可地址合并
-- 模型：`ModbusFrame`、`FrameCollection`、`ModbusFunctionCode`、`BooleanRepresentation`、`Endianness`
+- 模型：`ModbusFrame`、`FrameCollection`、`BooleanRepresentation`、`Endianness`
 
 ## 设计要点
 - 按字段地址序列化，字段顺序无关

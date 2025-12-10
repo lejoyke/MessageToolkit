@@ -30,7 +30,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     public ModbusWriteFrame BuildWriteFrame(TProtocol protocol)
     {
         return new ModbusWriteFrame(
-            ModbusFunctionCode.WriteMultipleRegisters,
             (ushort)Schema.StartAddress,
             Codec.Encode(protocol));
     }
@@ -46,7 +45,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     public ModbusWriteFrame BuildWriteFrame<TValue>(ushort address, TValue value) where TValue : unmanaged
     {
         return new ModbusWriteFrame(
-            ModbusFunctionCode.WriteMultipleRegisters,
             address,
             Codec.EncodeValue(value));
     }
@@ -58,7 +56,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     public ModbusReadRequest BuildReadRequest()
     {
         return new ModbusReadRequest(
-            ModbusFunctionCode.ReadHoldingRegisters,
             (ushort)Schema.StartAddress,
             (ushort)Schema.RegisterCount);
     }
@@ -70,7 +67,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
         var registerCount = (ushort)((fieldInfo.Size + 1) / 2); // 向上取整
 
         return new ModbusReadRequest(
-            ModbusFunctionCode.ReadHoldingRegisters,
             fieldInfo.ByteAddress,
             registerCount);
     }
@@ -78,7 +74,6 @@ public sealed class ModbusFrameBuilder<TProtocol> : IFrameBuilder<TProtocol>
     public ModbusReadRequest BuildReadRequest(ushort startAddress, ushort registerCount)
     {
         return new ModbusReadRequest(
-            ModbusFunctionCode.ReadHoldingRegisters,
             startAddress,
             registerCount);
     }

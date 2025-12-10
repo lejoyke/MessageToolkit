@@ -5,16 +5,8 @@ namespace MessageToolkit.Models;
 /// <summary>
 /// Modbus 写入帧 - 包含要写入的数据
 /// </summary>
-public readonly struct ModbusWriteFrame : IDisposable
+public readonly struct ModbusWriteFrame
 {
-    private readonly byte[]? _rentedArray;
-    private readonly bool _isPooled;
-
-    /// <summary>
-    /// 功能码
-    /// </summary>
-    public ModbusFunctionCode FunctionCode { get; }
-
     /// <summary>
     /// 起始地址（字节地址）
     /// </summary>
@@ -43,54 +35,25 @@ public readonly struct ModbusWriteFrame : IDisposable
     /// <summary>
     /// 创建写入帧（使用已有数据）
     /// </summary>
-    public ModbusWriteFrame(ModbusFunctionCode functionCode, ushort startAddress, byte[] data)
+    public ModbusWriteFrame(ushort startAddress, byte[] data)
     {
-        FunctionCode = functionCode;
         StartAddress = startAddress;
         Data = data;
-        _rentedArray = null;
-        _isPooled = false;
     }
 
     /// <summary>
     /// 创建写入帧
     /// </summary>
-    public ModbusWriteFrame(ModbusFunctionCode functionCode, ushort startAddress, ReadOnlyMemory<byte> data)
+    public ModbusWriteFrame(ushort startAddress, ReadOnlyMemory<byte> data)
     {
-        FunctionCode = functionCode;
         StartAddress = startAddress;
         Data = data;
-        _rentedArray = null;
-        _isPooled = false;
-    }
-
-    /// <summary>
-    /// 创建写入帧
-    /// </summary>
-    internal ModbusWriteFrame(ModbusFunctionCode functionCode, ushort startAddress, byte[] rentedArray, int length)
-    {
-        FunctionCode = functionCode;
-        StartAddress = startAddress;
-        _rentedArray = rentedArray;
-        _isPooled = true;
-        Data = new ReadOnlyMemory<byte>(rentedArray, 0, length);
     }
 
     /// <summary>
     /// 获取数据的副本
     /// </summary>
     public byte[] ToArray() => Data.ToArray();
-
-    /// <summary>
-    /// 释放租用的数组
-    /// </summary>
-    public void Dispose()
-    {
-        if (_isPooled && _rentedArray != null)
-        {
-            ArrayPool<byte>.Shared.Return(_rentedArray);
-        }
-    }
 }
 
 /// <summary>
@@ -98,10 +61,6 @@ public readonly struct ModbusWriteFrame : IDisposable
 /// </summary>
 public readonly struct ModbusReadRequest
 {
-    /// <summary>
-    /// 功能码
-    /// </summary>
-    public ModbusFunctionCode FunctionCode { get; }
 
     /// <summary>
     /// 起始地址（字节地址）
@@ -126,9 +85,8 @@ public readonly struct ModbusReadRequest
     /// <summary>
     /// 创建读取请求
     /// </summary>
-    public ModbusReadRequest(ModbusFunctionCode functionCode, ushort startAddress, ushort registerCount)
+    public ModbusReadRequest(ushort startAddress, ushort registerCount)
     {
-        FunctionCode = functionCode;
         StartAddress = startAddress;
         RegisterCount = registerCount;
     }
@@ -137,11 +95,11 @@ public readonly struct ModbusReadRequest
     /// 创建读取保持寄存器请求
     /// </summary>
     public static ModbusReadRequest ReadHoldingRegisters(ushort startAddress, ushort registerCount)
-        => new(ModbusFunctionCode.ReadHoldingRegisters, startAddress, registerCount);
+        => new(startAddress, registerCount);
 
     /// <summary>
     /// 创建读取输入寄存器请求
     /// </summary>
     public static ModbusReadRequest ReadInputRegisters(ushort startAddress, ushort registerCount)
-        => new(ModbusFunctionCode.ReadInputRegisters, startAddress, registerCount);
+        => new(startAddress, registerCount);
 }

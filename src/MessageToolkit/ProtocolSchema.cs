@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -18,6 +19,7 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
     public BooleanRepresentation BooleanType { get; }
     public Endianness Endianness { get; }
     public IReadOnlyDictionary<string, ProtocolFieldInfo> Fields { get; }
+    public IReadOnlyDictionary<string, ProtocolFieldInfo> BooleanFields { get; }
 
     public ProtocolSchema(
         BooleanRepresentation booleanType = BooleanRepresentation.Int16,
@@ -25,15 +27,17 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
     {
         BooleanType = booleanType;
         Endianness = endianness;
-        Fields = BuildFieldMapping(out var startAddress, out var totalSize);
+        var mapping = BuildFieldMapping();
+        Fields = mapping.Fields;
+        BooleanFields = mapping.BooleanFields;
 
         if (Fields.Count == 0)
         {
             throw new InvalidOperationException("协议中未找到任何带有 AddressAttribute 的字段或属性");
         }
 
-        StartAddress = startAddress;
-        TotalSize = totalSize;
+        StartAddress = mapping.StartAddress;
+        TotalSize = mapping.TotalSize;
     }
 
     public ushort GetAddress(string fieldName)
@@ -62,10 +66,14 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
         throw new ArgumentException($"找不到字段 {fieldName} 的定义");
     }
 
-    private IReadOnlyDictionary<string, ProtocolFieldInfo> BuildFieldMapping(out int startAddress, out int totalSize)
+    private (IReadOnlyDictionary<string, ProtocolFieldInfo> Fields,
+        IReadOnlyDictionary<string, ProtocolFieldInfo> BooleanFields,
+        int StartAddress,
+        int TotalSize) BuildFieldMapping()
     {
         var mapping = new Dictionary<string, ProtocolFieldInfo>(StringComparer.Ordinal);
-        startAddress = int.MaxValue;
+        var booleanMapping = new Dictionary<string, ProtocolFieldInfo>(StringComparer.Ordinal);
+        var startAddress = int.MaxValue;
         var maxEndAddress = 0;
 
         var members = typeof(TProtocol).GetMembers(BindingFlags.Instance | BindingFlags.Public);
@@ -86,13 +94,20 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
             var size = GetFieldSize(fieldType);
             var byteAddress = attribute.ByteAddress;
 
-            mapping[member.Name] = new ProtocolFieldInfo
+            var fieldInfo = new ProtocolFieldInfo
             {
                 Name = member.Name,
                 FieldType = fieldType,
                 ByteAddress = byteAddress,
                 Size = size
             };
+
+            mapping[member.Name] = fieldInfo;
+
+            if (fieldType == typeof(bool))
+            {
+                booleanMapping[member.Name] = fieldInfo;
+            }
 
             startAddress = Math.Min(startAddress, byteAddress);
             maxEndAddress = Math.Max(maxEndAddress, byteAddress + size);
@@ -103,8 +118,12 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
             startAddress = 0;
         }
 
-        totalSize = Math.Max(0, maxEndAddress - startAddress);
-        return mapping;
+        var totalSize = Math.Max(0, maxEndAddress - startAddress);
+        return (
+            mapping.ToFrozenDictionary(),
+            booleanMapping.ToFrozenDictionary(),
+            startAddress,
+            totalSize);
     }
 
     private int GetFieldSize(Type type)
