@@ -33,9 +33,7 @@ public sealed class NativeDataMapping<TProtocol, TData> : INativeDataMapping<TPr
     /// <summary>
     /// 添加字段写入（链式调用）
     /// </summary>
-    public INativeDataMapping<TProtocol, TData> Property(
-        Expression<Func<TProtocol, TData>> fieldSelector,
-        TData value)
+    public INativeDataMapping<TProtocol, TData> Write(Expression<Func<TProtocol, TData>> fieldSelector,TData value)
     {
         var address = _schema.GetAddress(fieldSelector);
         _data[address] = value;
@@ -45,10 +43,21 @@ public sealed class NativeDataMapping<TProtocol, TData> : INativeDataMapping<TPr
     /// <summary>
     /// 添加地址写入（链式调用）
     /// </summary>
-    public INativeDataMapping<TProtocol, TData> Property(ushort address, TData value)
+    public INativeDataMapping<TProtocol, TData> Write(ushort address, TData value)
     {
         _data[address] = value;
         return this;
+    }
+
+    public PropertyValueSetter<TProtocol, TData> Property(ushort address)
+    {
+        return new PropertyValueSetter<TProtocol, TData>(this, address);
+    }
+
+    public PropertyValueSetter<TProtocol, TData> Property(Expression<Func<TProtocol, TData>> fieldSelector, TData value)
+    {
+        var address = _schema.GetAddress(fieldSelector);
+        return new PropertyValueSetter<TProtocol, TData>(this, address);
     }
 
     /// <summary>

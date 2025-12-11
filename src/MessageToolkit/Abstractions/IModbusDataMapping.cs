@@ -18,15 +18,15 @@ public interface IModbusDataMapping<TProtocol>
     /// <summary>
     /// 添加字段写入
     /// </summary>
-    IModbusDataMapping<TProtocol> Property<TValue>(Expression<Func<TProtocol, TValue>> fieldSelector, TValue value) where TValue : unmanaged;
+    IModbusDataMapping<TProtocol> Write<TValue>(Expression<Func<TProtocol, TValue>> fieldSelector, TValue value) where TValue : unmanaged;
 
     /// <summary>
     /// 添加地址写入
     /// </summary>
-    IModbusDataMapping<TProtocol> Property<TValue>(ushort address, TValue value) where TValue : unmanaged;
+    IModbusDataMapping<TProtocol> Write<TValue>(ushort address, TValue value) where TValue : unmanaged;
 
 
-    IModbusDataMapping<TProtocol> Property(ushort address, byte[] value);
+    IModbusDataMapping<TProtocol> WriteRaw(ushort address, byte[] value);
 
     /// <summary>
     /// 构建帧集合（每个写入操作生成独立帧）

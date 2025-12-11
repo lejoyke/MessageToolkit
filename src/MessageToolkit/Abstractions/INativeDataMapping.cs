@@ -19,12 +19,16 @@ public interface INativeDataMapping<TProtocol, TData>
     /// <summary>
     /// 添加字段写入（链式调用）
     /// </summary>
-    INativeDataMapping<TProtocol, TData> Property(Expression<Func<TProtocol, TData>> fieldSelector, TData value);
+    INativeDataMapping<TProtocol, TData> Write(Expression<Func<TProtocol, TData>> fieldSelector, TData value);
 
     /// <summary>
     /// 添加地址写入（链式调用）
     /// </summary>
-    INativeDataMapping<TProtocol, TData> Property(ushort address, TData value);
+    INativeDataMapping<TProtocol, TData> Write(ushort address, TData value);
+
+    PropertyValueSetter<TProtocol, TData> Property(ushort address);
+
+    PropertyValueSetter<TProtocol, TData> Property(Expression<Func<TProtocol, TData>> fieldSelector, TData value);
 
     /// <summary>
     /// 构建帧集合（每个写入操作生成独立帧）

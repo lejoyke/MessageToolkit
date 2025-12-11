@@ -35,7 +35,7 @@ public sealed class ModbusDataMapping<TProtocol> : IModbusDataMapping<TProtocol>
     /// <summary>
     /// 添加字段写入（链式调用）
     /// </summary>
-    public IModbusDataMapping<TProtocol> Property<TValue>(
+    public IModbusDataMapping<TProtocol> Write<TValue>(
         Expression<Func<TProtocol, TValue>> fieldSelector,
         TValue value) where TValue : unmanaged
     {
@@ -48,14 +48,14 @@ public sealed class ModbusDataMapping<TProtocol> : IModbusDataMapping<TProtocol>
     /// <summary>
     /// 添加地址写入（链式调用）
     /// </summary>
-    public IModbusDataMapping<TProtocol> Property<TValue>(ushort address, TValue value) where TValue : unmanaged
+    public IModbusDataMapping<TProtocol> Write<TValue>(ushort address, TValue value) where TValue : unmanaged
     {
         var data = _codec.EncodeValue(value);
         _pendingWrites.Add(new WriteEntry(address, data));
         return this;
     }
 
-    public IModbusDataMapping<TProtocol> Property(ushort address, byte[] value)
+    public IModbusDataMapping<TProtocol> WriteRaw(ushort address, byte[] value)
     {
         _pendingWrites.Add(new WriteEntry(address, value));
         return this;
