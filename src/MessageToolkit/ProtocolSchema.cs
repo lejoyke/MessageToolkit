@@ -25,9 +25,7 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
 
     public IReadOnlyDictionary<string, ProtocolFieldInfo> Properties { get; }
 
-    public ProtocolSchema(
-        BooleanRepresentation booleanType = BooleanRepresentation.Int16,
-        Endianness endianness = Endianness.BigEndian)
+    public ProtocolSchema(BooleanRepresentation booleanType = BooleanRepresentation.Int16, Endianness endianness = Endianness.BigEndian)
     {
         BooleanType = booleanType;
         Endianness = endianness;

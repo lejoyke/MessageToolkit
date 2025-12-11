@@ -9,13 +9,13 @@ namespace MessageToolkit.Tests;
 public sealed class ProtocolTests
 {
     private readonly IProtocolSchema<DemoProtocol> _schema;
-    private readonly ByteProtocolCodec<DemoProtocol> _codec;
+    private readonly ModbusProtocolCodec<DemoProtocol> _codec;
     private readonly ModbusFrameBuilder<DemoProtocol> _builder;
 
     public ProtocolTests()
     {
         _schema = new ProtocolSchema<DemoProtocol>(BooleanRepresentation.Int16, Endianness.BigEndian);
-        _codec = new ByteProtocolCodec<DemoProtocol>(_schema);
+        _codec = new ModbusProtocolCodec<DemoProtocol>(_schema);
         _builder = new ModbusFrameBuilder<DemoProtocol>(_schema, _codec);
     }
 

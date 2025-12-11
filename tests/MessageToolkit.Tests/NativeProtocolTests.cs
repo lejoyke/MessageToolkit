@@ -161,7 +161,7 @@ public sealed class NativeProtocolTests
     [Fact]
     public void NativeWriteFrame_Should_Support_SingleValue()
     {
-        var frame = new NativeWriteFrame<bool>(5, true);
+        var frame = new WriteFrame<bool>(5, true);
         
         Assert.Equal(5, frame.StartAddress);
         Assert.Equal(1, frame.DataLength);
@@ -171,7 +171,7 @@ public sealed class NativeProtocolTests
     [Fact]
     public void NativeWriteFrame_Should_Support_ArrayValue()
     {
-        var frame = new NativeWriteFrame<bool>(0, new[] { true, false, true });
+        var frame = new WriteFrame<bool>(0, new[] { true, false, true });
         
         Assert.Equal(0, frame.StartAddress);
         Assert.Equal(3, frame.DataLength);
@@ -179,6 +179,110 @@ public sealed class NativeProtocolTests
         Assert.True(data[0]);
         Assert.False(data[1]);
         Assert.True(data[2]);
+    }
+
+    private struct IOProtocol
+    {
+        [Address(0)] public bool DI0 { get; set; }
+        [Address(1)] public bool DI1 { get; set; }
+        [Address(8)] public bool DO0 { get; set; }
+        [Address(9)] public bool DO1 { get; set; }
+    }
+}
+
+/// <summary>
+/// 工厂方法测试
+/// </summary>
+public sealed class FrameBuilderFactoryTests
+{
+    [Fact]
+    public void CreateModbus_Should_Create_Builder_With_Default_Config()
+    {
+        var builder = FrameBuilderFactory.CreateModbus<DemoProtocol>();
+        
+        Assert.NotNull(builder);
+        Assert.NotNull(builder.Schema);
+        Assert.NotNull(builder.Codec);
+        Assert.Equal(BooleanRepresentation.Int16, builder.Schema.BooleanType);
+        Assert.Equal(Endianness.BigEndian, builder.Schema.Endianness);
+    }
+
+    [Fact]
+    public void CreateModbus_Should_Create_Builder_With_Custom_Config()
+    {
+        var builder = FrameBuilderFactory.CreateModbus<DemoProtocol>(
+            BooleanRepresentation.Int32, 
+            Endianness.LittleEndian);
+        
+        Assert.NotNull(builder);
+        Assert.Equal(BooleanRepresentation.Int32, builder.Schema.BooleanType);
+        Assert.Equal(Endianness.LittleEndian, builder.Schema.Endianness);
+    }
+
+    [Fact]
+    public void CreateNative_Should_Create_Builder_With_Default_Config()
+    {
+        var builder = FrameBuilderFactory.CreateNative<IOProtocol, bool>();
+        
+        Assert.NotNull(builder);
+        Assert.NotNull(builder.Schema);
+        Assert.NotNull(builder.Codec);
+        Assert.Equal(BooleanRepresentation.Boolean, builder.Schema.BooleanType);
+    }
+
+    [Fact]
+    public void CreateNative_Should_Create_Builder_With_Custom_Config()
+    {
+        var builder = FrameBuilderFactory.CreateNative<IOProtocol, bool>(
+            BooleanRepresentation.Boolean,
+            Endianness.LittleEndian);
+        
+        Assert.NotNull(builder);
+        Assert.Equal(Endianness.LittleEndian, builder.Schema.Endianness);
+    }
+
+    [Fact]
+    public void CreateModbus_With_Schema_Should_Reuse_Schema()
+    {
+        var schema = new ProtocolSchema<DemoProtocol>(BooleanRepresentation.Int16, Endianness.BigEndian);
+        var builder = FrameBuilderFactory.CreateModbus(schema);
+        
+        Assert.Same(schema, builder.Schema);
+    }
+
+    [Fact]
+    public void CreateNative_With_Schema_Should_Reuse_Schema()
+    {
+        var schema = new ProtocolSchema<IOProtocol>(BooleanRepresentation.Boolean, Endianness.BigEndian);
+        var builder = FrameBuilderFactory.CreateNative<IOProtocol, bool>(schema);
+        
+        Assert.Same(schema, builder.Schema);
+    }
+
+    [Fact]
+    public void Factory_Created_Builder_Should_Work_Correctly()
+    {
+        var builder = FrameBuilderFactory.CreateModbus<DemoProtocol>();
+        
+        var protocol = new DemoProtocol
+        {
+            Speed = 100,
+            Temperature = 25.5f,
+            IsRunning = true,
+            Status = 1
+        };
+
+        var writeFrame = builder.BuildWriteFrame(protocol);
+        Assert.Equal(100, writeFrame.StartAddress);
+        Assert.Equal(12, writeFrame.DataLength);
+    }
+
+    private struct DemoProtocol
+    {
+        [Address(100)] public int Speed { get; set; }
+        [Address(104)] public float Temperature { get; set; }
+        [Address(108)] public bool IsRunning { get; set; }
+        [Address(110)] public short Status { get; set; }
     }
 
     private struct IOProtocol

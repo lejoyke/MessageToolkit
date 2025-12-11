@@ -11,8 +11,7 @@ namespace MessageToolkit;
 /// <summary>
 /// 字节协议编解码器 - 类型转换 + 地址映射
 /// </summary>
-/// <remarks>
-public sealed class ModbusProtocolCodec<TProtocol> : IProtocolCodec<TProtocol, byte>
+public sealed class ModbusProtocolCodec<TProtocol> : IModbusProtocolCodec<TProtocol>
     where TProtocol : struct
 {
     /// <summary>
@@ -43,15 +42,6 @@ public sealed class ModbusProtocolCodec<TProtocol> : IProtocolCodec<TProtocol, b
     /// <summary>
     /// 编码：协议结构体 → 字节数组
     /// </summary>
-    /// <remarks>
-    /// 执行流程：
-    /// <list type="number">
-    ///   <item><description>遍历所有标记了地址的属性</description></item>
-    ///   <item><description>根据属性类型执行类型转换（值类型 → 字节）</description></item>
-    ///   <item><description>根据字节序配置处理字节顺序</description></item>
-    ///   <item><description>将字节写入到对应地址偏移位置</description></item>
-    /// </list>
-    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Encode(TProtocol protocol)
     {
@@ -72,23 +62,12 @@ public sealed class ModbusProtocolCodec<TProtocol> : IProtocolCodec<TProtocol, b
     /// <summary>
     /// 解码：字节数组 → 协议结构体
     /// </summary>
-    /// <remarks>
-    /// 执行流程：
-    /// <list type="number">
-    ///   <item><description>遍历所有标记了地址的属性</description></item>
-    ///   <item><description>从对应地址偏移位置读取字节</description></item>
-    ///   <item><description>根据字节序配置处理字节顺序</description></item>
-    ///   <item><description>根据属性类型执行类型转换（字节 → 值类型）</description></item>
-    /// </list>
-    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TProtocol Decode(ReadOnlySpan<byte> data)
     {
         if (data.Length < Schema.TotalSize)
         {
-            throw new ArgumentException(
-                $"数据长度不足: 需要 {Schema.TotalSize} 字节, 实际 {data.Length} 字节",
-                nameof(data));
+            throw new ArgumentException($"数据长度不足: 需要 {Schema.TotalSize} 字节, 实际 {data.Length} 字节",nameof(data));
         }
 
         var result = new TProtocol();
@@ -243,8 +222,7 @@ public sealed class ModbusProtocolCodec<TProtocol> : IProtocolCodec<TProtocol, b
             return property;
         }
 
-        throw new ArgumentException(
-            $"找不到属性 {name}，请确认协议模型仅包含带 Address 特性的公共属性。");
+        throw new ArgumentException($"找不到属性 {name}，请确认协议模型仅包含带 Address 特性的公共属性。");
     }
 
     /// <summary>

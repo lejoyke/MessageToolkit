@@ -26,6 +26,5 @@ public readonly struct ReadFrame(int startAddress, int count) : IReadFrame
     /// <summary>
     /// 创建多点读取请求
     /// </summary>
-    public static ReadFrame ReadMultiple(int startAddress, int count)
-        => new(startAddress, count);
+    public static ReadFrame ReadMultiple(int startAddress, int count) => new(startAddress, count);
 }

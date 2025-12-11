@@ -6,7 +6,7 @@ namespace MessageToolkit.Models;
 /// 原生类型写入帧 - 用于原生类型数据的写入
 /// </summary>
 /// <typeparam name="TData">原生数据类型</typeparam>
-public readonly struct NativeWriteFrame<TData> : IFrame<TData>
+public readonly struct WriteFrame<TData> : IFrame<TData>
 {
     /// <summary>
     /// 起始地址
@@ -28,7 +28,7 @@ public readonly struct NativeWriteFrame<TData> : IFrame<TData>
     /// </summary>
     /// <param name="startAddress">起始地址</param>
     /// <param name="data">数据数组</param>
-    public NativeWriteFrame(int startAddress, TData[] data)
+    public WriteFrame(int startAddress, TData[] data)
     {
         StartAddress = startAddress;
         Data = data;
@@ -39,7 +39,7 @@ public readonly struct NativeWriteFrame<TData> : IFrame<TData>
     /// </summary>
     /// <param name="startAddress">起始地址</param>
     /// <param name="data">数据</param>
-    public NativeWriteFrame(int startAddress, ReadOnlyMemory<TData> data)
+    public WriteFrame(int startAddress, ReadOnlyMemory<TData> data)
     {
         StartAddress = startAddress;
         Data = data;
@@ -50,7 +50,7 @@ public readonly struct NativeWriteFrame<TData> : IFrame<TData>
     /// </summary>
     /// <param name="address">地址</param>
     /// <param name="value">值</param>
-    public NativeWriteFrame(int address, TData value)
+    public WriteFrame(int address, TData value)
     {
         StartAddress = address;
         Data = new[] { value };

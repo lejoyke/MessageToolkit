@@ -7,13 +7,9 @@ namespace MessageToolkit;
 /// <summary>
 /// 原生协议编解码器 - 直接地址映射，无类型转换
 /// </summary>
-/// <remarks>
-/// 用于处理数据类型已匹配的场景（如 IO 点位 bool[]、原生 byte[] 等）。
-/// 核心功能是地址映射，不进行任何类型转换。
-/// </remarks>
 /// <typeparam name="TProtocol">协议结构体类型</typeparam>
 /// <typeparam name="TData">原生数据类型（bool、byte、int 等）</typeparam>
-public sealed class NativeProtocolCodec<TProtocol, TData> : IProtocolCodec<TProtocol, TData>
+public sealed class NativeProtocolCodec<TProtocol, TData> : INativeProtocolCodec<TProtocol, TData>
     where TProtocol : struct
 {
     /// <summary>
