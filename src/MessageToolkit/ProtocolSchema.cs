@@ -9,15 +9,20 @@ using MessageToolkit.Models;
 namespace MessageToolkit;
 
 /// <summary>
-/// 协议模式实现 - 通过反射分析协议结构
+/// 协议模式 - 解析协议结构体，提供地址映射
 /// </summary>
+/// <remarks>
 public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
     where TProtocol : struct
 {
     public int StartAddress { get; }
+
     public int TotalSize { get; }
+
     public BooleanRepresentation BooleanType { get; }
+
     public Endianness Endianness { get; }
+
     public IReadOnlyDictionary<string, ProtocolFieldInfo> Properties { get; }
 
     public ProtocolSchema(
@@ -26,12 +31,14 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
     {
         BooleanType = booleanType;
         Endianness = endianness;
+
         var mapping = BuildFieldMapping();
         Properties = mapping.Fields;
 
         if (Properties.Count == 0)
         {
-            throw new InvalidOperationException("协议中未找到任何带有 AddressAttribute 的字段或属性");
+            throw new InvalidOperationException(
+                $"协议 {typeof(TProtocol).Name} 中未找到任何带有 [Address] 特性的属性");
         }
 
         StartAddress = mapping.StartAddress;
@@ -64,7 +71,9 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
         throw new ArgumentException($"找不到字段 {fieldName} 的定义");
     }
 
-    private (IReadOnlyDictionary<string, ProtocolFieldInfo> Fields,int StartAddress,int TotalSize) BuildFieldMapping()
+    #region 私有方法
+
+    private (IReadOnlyDictionary<string, ProtocolFieldInfo> Fields, int StartAddress, int TotalSize) BuildFieldMapping()
     {
         var mapping = new Dictionary<string, ProtocolFieldInfo>(StringComparer.Ordinal);
         var startAddress = int.MaxValue;
@@ -93,7 +102,6 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
 
             mapping[propertyInfo.Name] = fieldInfo;
 
-
             startAddress = Math.Min(startAddress, address);
             maxEndAddress = Math.Max(maxEndAddress, address + size);
         }
@@ -104,9 +112,7 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
         }
 
         var totalSize = Math.Max(0, maxEndAddress - startAddress);
-        return (mapping.ToFrozenDictionary(),
-            startAddress,
-            totalSize);
+        return (mapping.ToFrozenDictionary(), startAddress, totalSize);
     }
 
     private int GetFieldSize(Type type)
@@ -138,5 +144,7 @@ public sealed class ProtocolSchema<TProtocol> : IProtocolSchema<TProtocol>
 
         throw new ArgumentException("无效的字段访问表达式");
     }
+
+    #endregion
 }
 

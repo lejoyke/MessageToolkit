@@ -2,360 +2,355 @@
 
 ## 1. 概述
 
-### 1.1 项目背景
+### 1.1 核心问题
 
-在工业自动化和设备通信领域，经常需要与 PLC、传感器、执行器等设备进行数据交互。这些设备通常使用 Modbus 协议（基于寄存器的字节通信）或 IO 点位协议（基于位的布尔通信）。开发人员需要手动处理：
+在工业通信场景中，开发者面临两类数据处理挑战：
 
-- 数据类型与字节数组之间的转换
-- 字节序（大端/小端）处理
-- 地址计算和偏移管理
-- 多字段的批量读写优化
+**挑战一：字节数据的类型转换**
+```
+原始数据: [0x00, 0x64, 0x41, 0xC8, 0x00, 0x00, ...]
+           ↓ 需要转换
+协议对象: { Speed = 100, Temperature = 25.0f, Status = 0 }
+```
+- 如何将连续的字节流解析为有意义的字段？
+- 如何处理不同数据类型（int、float、bool）的字节表示？
+- 如何处理大端/小端字节序？
+- 如何将抽象的地址（如寄存器地址 100）映射到具体字段？
 
-这些重复性工作容易出错，且代码难以维护。
+**挑战二：原生类型的地址映射**
+```
+原始数据: [true, false, true, true, false, ...]  // bool[]
+           ↓ 需要映射
+协议对象: { Input1 = true, Input2 = false, Output1 = true, ... }
+```
+- 数据类型已经是目标类型（bool、byte、int 等），无需转换
+- 需要将抽象地址（如 IO 点位地址 0、1、2）映射到具体字段名
 
-### 1.2 项目目标
+### 1.2 解决方案
 
-MessageToolkit 是一个 .NET 类库，旨在提供：
+MessageToolkit 提供两种协议处理模式：
 
-1. **类型安全的协议定义** - 使用 C# 结构体定义通信协议，通过特性标记地址
-2. **自动编解码** - 自动处理数据类型与字节/位数组之间的转换
-3. **帧构建器** - 简化读写帧的构建过程
-4. **批量优化** - 自动合并连续地址的写入操作，减少通信次数
-5. **双协议支持** - 同时支持 Modbus 字节帧和 IO 位帧
+| 模式 | 核心功能 | 适用场景 |
+|------|----------|----------|
+| **字节协议 (Byte Protocol)** | 类型转换 + 地址映射 + 帧构建 | Modbus 寄存器读写 |
+| **原生协议 (Native Protocol)** | 地址映射 + 帧构建 | IO 点位、原生数组 |
 
-### 1.3 适用范围
+### 1.3 设计目标
 
-- .NET 8.0 及以上版本
-- 工业自动化设备通信
-- Modbus RTU/TCP 协议
-- 数字 IO 点位读写
+1. **声明式协议定义** - 使用特性标记地址，自动建立映射关系
+2. **类型安全** - 编译时检查，减少运行时错误
+3. **零配置编解码** - 自动处理类型转换和字节序
+4. **简洁的帧构建** - 通过 Lambda 表达式选择字段，自动计算地址
 
 ---
 
-## 2. 功能需求
+## 2. 核心概念
 
-### 2.1 协议定义 (Protocol Definition)
+### 2.1 协议结构体
 
-#### 2.1.1 地址特性标记
+协议是一个 C# 结构体，通过 `[Address]` 特性将字段与通信地址绑定：
 
-**需求描述**：用户可以使用 `[Address]` 特性标记结构体的属性，指定该字段在通信协议中的地址。
-
-**功能要求**：
-- 支持 `ushort` 类型的地址值
-- 可应用于属性和字段
-- 地址值代表字节偏移量
-
-**使用示例**：
 ```csharp
 public struct DeviceProtocol
 {
-    [Address(100)] public int Speed { get; set; }        // 地址 100，占 4 字节
-    [Address(104)] public float Temperature { get; set; } // 地址 104，占 4 字节
-    [Address(108)] public bool IsRunning { get; set; }    // 地址 108，占 2/4 字节
-    [Address(110)] public short Status { get; set; }      // 地址 110，占 2 字节
+    [Address(100)] public int Speed { get; set; }        // 地址 100
+    [Address(104)] public float Temperature { get; set; } // 地址 104
+    [Address(108)] public short Status { get; set; }      // 地址 108
 }
 ```
 
-#### 2.1.2 支持的数据类型
+协议结构体的作用：
+- 定义数据的逻辑结构
+- 建立 **地址 ↔ 字段名** 的映射关系
+- 为编解码器提供类型信息
 
-**需求描述**：协议字段应支持常见的 unmanaged 值类型。
+### 2.2 地址映射
 
-**支持的类型**：
+地址映射是 MessageToolkit 的核心功能之一：
+
+```
+抽象地址空间                    具体字段
+┌─────────────┐              ┌─────────────────┐
+│ Address 100 │  ──────────► │ Speed (int)     │
+│ Address 104 │  ──────────► │ Temperature     │
+│ Address 108 │  ──────────► │ Status (short)  │
+└─────────────┘              └─────────────────┘
+```
+
+**价值**：开发者使用熟悉的字段名，而不是难以记忆的地址数字。
+
+### 2.3 两种协议模式对比
+
+#### 字节协议 (Byte Protocol)
+
+适用于需要类型转换的场景（如 Modbus 寄存器）：
+
+```
+编码流程:
+Protocol { Speed=100, Temp=25.0f }
+    ↓ 类型转换 (int → 4 bytes, float → 4 bytes)
+    ↓ 字节序处理 (Big Endian)
+byte[] { 0x00, 0x00, 0x00, 0x64, 0x41, 0xC8, 0x00, 0x00 }
+
+解码流程:
+byte[] { 0x00, 0x00, 0x00, 0x64, 0x41, 0xC8, 0x00, 0x00 }
+    ↓ 字节序处理
+    ↓ 类型转换 (4 bytes → int, 4 bytes → float)
+Protocol { Speed=100, Temp=25.0f }
+```
+
+#### 原生协议 (Native Protocol)
+
+适用于数据类型已匹配的场景（如 IO 点位）：
+
+```
+编码流程:
+Protocol { Input1=true, Input2=false, Output1=true }
+    ↓ 地址映射 (无类型转换)
+bool[] { true, false, true }
+
+解码流程:
+bool[] { true, false, true }
+    ↓ 地址映射 (无类型转换)  
+Protocol { Input1=true, Input2=false, Output1=true }
+```
+
+---
+
+## 3. 功能规格
+
+### 3.1 字节协议功能
+
+#### 3.1.1 类型转换
+
+将 unmanaged 值类型与字节数组相互转换：
+
 | 类型 | 大小 | 说明 |
 |------|------|------|
-| `byte` | 1 字节 | 无符号 8 位整数 |
-| `sbyte` | 1 字节 | 有符号 8 位整数 |
-| `short` | 2 字节 | 有符号 16 位整数 |
-| `ushort` | 2 字节 | 无符号 16 位整数 |
-| `int` | 4 字节 | 有符号 32 位整数 |
-| `uint` | 4 字节 | 无符号 32 位整数 |
-| `long` | 8 字节 | 有符号 64 位整数 |
-| `ulong` | 8 字节 | 无符号 64 位整数 |
-| `float` | 4 字节 | 单精度浮点数 |
-| `double` | 8 字节 | 双精度浮点数 |
-| `bool` | 2/4 字节 | 布尔值（可配置表示方式） |
+| `short/ushort` | 2 字节 | 16 位整数 |
+| `int/uint` | 4 字节 | 32 位整数 |
+| `long/ulong` | 8 字节 | 64 位整数 |
+| `float` | 4 字节 | 单精度浮点 |
+| `double` | 8 字节 | 双精度浮点 |
+| `bool` | 2/4 字节 | 可配置表示方式 |
+| `enum` | 取决于基础类型 | 自动处理 |
 
-#### 2.1.3 布尔类型表示
+#### 3.1.2 字节序处理
 
-**需求描述**：布尔类型在 Modbus 协议中通常占用 2 或 4 字节。
-
-**配置选项**：
-- `Int16` - 使用 2 字节表示布尔值（0x0000 = false, 0x0001 = true）
-- `Int32` - 使用 4 字节表示布尔值
-
-#### 2.1.4 字节序配置
-
-**需求描述**：支持大端序和小端序的数据编码。
-
-**配置选项**：
-- `BigEndian` - 大端序（Modbus 标准）
-- `LittleEndian` - 小端序
-
----
-
-### 2.2 协议模式 (Protocol Schema)
-
-#### 2.2.1 自动解析
-
-**需求描述**：系统应自动解析协议结构体，提取地址和类型信息。
-
-**功能要求**：
-- 自动计算协议起始地址（所有字段中的最小地址）
-- 自动计算协议总大小（覆盖所有字段的字节范围）
-- 提取所有字段的地址、类型、大小信息
-- 识别布尔类型字段
-
-#### 2.2.2 字段信息查询
-
-**需求描述**：提供 API 查询协议字段信息。
-
-**功能要求**：
-- 根据字段名获取地址
-- 根据 Lambda 表达式获取地址
-- 获取字段的完整信息（名称、地址、类型、大小）
-
----
-
-### 2.3 编解码器 (Protocol Codec)
-
-#### 2.3.1 协议编码
-
-**需求描述**：将协议结构体序列化为数据数组。
-
-**功能要求**：
-- 支持整个协议的编码
-- 支持单个字段值的编码
-- 处理字节序转换
-- 处理布尔类型表示转换
-
-#### 2.3.2 协议解码
-
-**需求描述**：从数据数组反序列化为协议结构体。
-
-**功能要求**：
-- 支持整个协议的解码
-- 支持单个字段值的解码
-- 数据长度校验
-- 字节序转换
-
-#### 2.3.3 双协议支持
-
-**需求描述**：支持两种数据载荷类型。
-
-| 协议类型 | 数据类型 | 适用场景 |
-|----------|----------|----------|
-| Modbus 字节帧 | `byte[]` | 寄存器读写 |
-| IO 位帧 | `bool[]` | 数字 IO 点位读写 |
-
----
-
-### 2.4 帧构建器 (Frame Builder)
-
-#### 2.4.1 写入帧构建
-
-**需求描述**：构建用于写入数据的帧。
-
-**功能要求**：
-- 构建整个协议的写入帧
-- 构建单个字段的写入帧（通过 Lambda 表达式选择字段）
-- 构建指定地址的写入帧
-
-**输出信息**：
-- 起始地址
-- 数据载荷
-- 数据长度
-- 寄存器数量（Modbus）/ 点位数量（IO）
-
-#### 2.4.2 读取请求构建
-
-**需求描述**：构建用于读取数据的请求。
-
-**功能要求**：
-- 构建整个协议的读取请求
-- 构建单个字段的读取请求
-- 构建指定地址和数量的读取请求
-
-**输出信息**：
-- 起始地址
-- 读取数量
-- 字节数（Modbus）
-
----
-
-### 2.5 数据映射 (Data Mapping)
-
-#### 2.5.1 批量写入
-
-**需求描述**：支持批量添加多个字段的写入操作。
-
-**功能要求**：
-- 链式 API 添加写入操作
-- 支持通过 Lambda 表达式指定字段
-- 支持直接指定地址
-- 支持 Fluent API 风格（Property + Value）
-
-**使用示例**：
 ```csharp
-// 链式写入
-builder.CreateDataMapping()
+// 配置字节序
+var schema = new ProtocolSchema<DeviceProtocol>(
+    endianness: Endianness.BigEndian  // Modbus 标准
+);
+
+// int 值 100 的编码结果:
+// BigEndian:    [0x00, 0x00, 0x00, 0x64]
+// LittleEndian: [0x64, 0x00, 0x00, 0x00]
+```
+
+#### 3.1.3 布尔类型表示
+
+Modbus 协议中布尔值通常用整数表示：
+
+```csharp
+var schema = new ProtocolSchema<DeviceProtocol>(
+    booleanType: BooleanRepresentation.Int16  // 2 字节
+);
+
+// true  → [0x00, 0x01]
+// false → [0x00, 0x00]
+```
+
+### 3.2 原生协议功能
+
+#### 3.2.1 直接映射
+
+原生协议不进行类型转换，直接按地址映射：
+
+```csharp
+public struct IOProtocol
+{
+    [Address(0)] public bool Input1 { get; set; }
+    [Address(1)] public bool Input2 { get; set; }
+    [Address(2)] public bool Output1 { get; set; }
+}
+
+// 编码: Protocol → bool[]
+// 解码: bool[] → Protocol
+// 无类型转换，仅地址对应
+```
+
+#### 3.2.2 支持的原生类型
+
+| 原生类型 | 使用场景 |
+|----------|----------|
+| `bool` | 数字 IO 点位 |
+| `byte` | 字节级 IO |
+| `int` | 整数寄存器组 |
+
+### 3.3 通用功能：地址映射与帧构建
+
+两种协议模式共享的核心功能：
+
+#### 3.3.1 地址查询
+
+```csharp
+// 通过字段名
+ushort addr1 = schema.GetAddress("Speed");
+
+// 通过 Lambda 表达式 (类型安全)
+ushort addr2 = schema.GetAddress(p => p.Speed);
+```
+
+#### 3.3.2 帧构建
+
+**写入帧构建**：
+```csharp
+// 写入整个协议
+var frame = builder.BuildWriteFrame(protocol);
+// 结果: { StartAddress, Data[], DataLength }
+
+// 写入单个字段
+var frame = builder.BuildWriteFrame(p => p.Speed, 1500);
+// 自动解析地址，编码值
+```
+
+**读取请求构建**：
+```csharp
+// 读取整个协议
+var request = builder.BuildReadRequest();
+// 结果: { StartAddress, Count }
+
+// 读取单个字段
+var request = builder.BuildReadRequest(p => p.Speed);
+```
+
+#### 3.3.3 批量数据映射
+
+```csharp
+// 批量设置多个字段，自动合并连续地址
+var frames = builder.CreateDataMapping()
     .Property(p => p.Speed, 1500)
     .Property(p => p.Temperature, 25.5f)
-    .Property(p => p.IsRunning, true)
-    .Build();
+    .Property(p => p.Status, (short)1)
+    .BuildOptimized();
 
-// Fluent API 风格
-builder.CreateDataMapping()
-    .Property(p => p.Speed).Value(1500)
-    .Property(p => p.Temperature).Value(25.5f)
-    .Build();
+// 优化结果: 连续地址合并为单帧，减少通信次数
 ```
-
-#### 2.5.2 帧优化
-
-**需求描述**：自动合并连续地址的写入操作，生成最少的帧。
-
-**优化规则**：
-- 按地址排序所有写入操作
-- 合并地址连续的写入为单个帧
-- 地址不连续的写入生成独立的帧
-
-**示例**：
-```
-输入：
-  - 写入地址 100, 数据 4 字节
-  - 写入地址 104, 数据 4 字节
-  - 写入地址 200, 数据 2 字节
-
-输出（优化后）：
-  - 帧1: 起始地址 100, 数据 8 字节（合并了 100 和 104）
-  - 帧2: 起始地址 200, 数据 2 字节
-```
-
-#### 2.5.3 清空与重置
-
-**需求描述**：支持清空已添加的写入操作。
-
-**功能要求**：
-- `Clear()` 方法清空所有待写入数据
-- `Count` 属性查询当前待写入操作数量
 
 ---
 
-### 2.6 依赖注入支持
-
-#### 2.6.1 服务注册
-
-**需求描述**：提供 Microsoft.Extensions.DependencyInjection 集成。
-
-**功能要求**：
-- `AddMessageToolkit()` - 添加基础服务
-- `AddModbusProtocol<TProtocol>()` - 注册 Modbus 字节帧协议
-- `AddBitProtocol<TProtocol>()` - 注册 IO 位帧协议
-
-**配置选项**：
-- 布尔类型表示方式
-- 字节序
-
----
-
-## 3. 非功能需求
-
-### 3.1 性能要求
-
-- 编解码操作应高效，避免不必要的内存分配
-- 使用 `ReadOnlySpan<T>` 和 `ReadOnlyMemory<T>` 减少复制
-- 支持结构体以避免堆分配
-
-### 3.2 可扩展性
-
-- 接口抽象设计，支持自定义实现
-- 泛型设计，支持任意协议结构体
-- 支持扩展新的数据载荷类型
-
-### 3.3 可维护性
-
-- 清晰的代码结构和命名
-- 完整的 XML 文档注释
-- 单元测试覆盖核心功能
-
-### 3.4 兼容性
-
-- 目标框架：.NET 8.0
-- 无外部依赖（除 Microsoft.Extensions.DependencyInjection.Abstractions）
-
----
-
-## 4. 接口规范
+## 4. API 设计
 
 ### 4.1 核心接口
 
-```
-IProtocolSchema<TProtocol>     - 协议模式接口
-IProtocolCodec<TProtocol, TData> - 编解码器接口
-IFrameBuilder<TProtocol, TData>  - 帧构建器接口
-IDataMapping<TProtocol, TData>   - 数据映射接口
-IFrame<TData>                    - 帧接口
-IWriteFrame<TData>               - 写入帧接口
-IReadRequest                     - 读取请求接口
-IValueSetter<TProtocol, TData>   - 值设置器接口（Fluent API）
+```csharp
+// 协议模式 - 描述协议结构，提供地址映射
+interface IProtocolSchema<TProtocol>
+{
+    int StartAddress { get; }
+    int TotalSize { get; }
+    ushort GetAddress(string fieldName);
+    ushort GetAddress<TValue>(Expression<Func<TProtocol, TValue>> selector);
+}
+
+// 编解码器 - 协议与数据数组的转换
+interface IProtocolCodec<TProtocol, TData>
+{
+    TData[] Encode(TProtocol protocol);
+    TProtocol Decode(ReadOnlySpan<TData> data);
+}
+
+// 帧构建器 - 构建读写帧
+interface IFrameBuilder<TProtocol, TData>
+{
+    IFrame<TData> BuildWriteFrame(TProtocol protocol);
+    IReadFrame BuildReadRequest();
+    IDataMapping<TProtocol, TData> CreateDataMapping();
+}
 ```
 
 ### 4.2 实现类
 
-```
-ProtocolSchema<TProtocol>        - 协议模式实现
-ProtocolCodec<TProtocol>         - Modbus 编解码器
-BitProtocolCodec<TProtocol>      - IO 位编解码器
-ModbusFrameBuilder<TProtocol>    - Modbus 帧构建器
-BitFrameBuilder<TProtocol>       - IO 位帧构建器
-ModbusWriteFrame                 - Modbus 写入帧
-ModbusReadRequest                - Modbus 读取请求
-BitWriteFrame                    - IO 位写入帧
-BitReadRequest                   - IO 位读取请求
-```
+| 类 | 用途 |
+|----|------|
+| `ProtocolSchema<T>` | 协议结构解析，地址映射 |
+| `ByteProtocolCodec<T>` | 字节协议编解码（含类型转换） |
+| `BitProtocolCodec<T, TData>` | 原生协议编解码（无类型转换） |
+| `ModbusFrameBuilder<T>` | Modbus 帧构建 |
+| `BitFrameBuilder<T>` | IO 位帧构建 |
 
 ---
 
-## 5. 使用场景
+## 5. 使用示例
 
-### 5.1 场景一：Modbus 设备通信
+### 5.1 字节协议示例（Modbus）
 
-**描述**：与 Modbus TCP/RTU 设备进行寄存器读写。
+```csharp
+// 1. 定义协议
+public struct MotorProtocol
+{
+    [Address(100)] public int Speed { get; set; }
+    [Address(104)] public float Temperature { get; set; }
+    [Address(108)] public bool IsRunning { get; set; }
+}
 
-**流程**：
-1. 定义协议结构体，标记地址
-2. 注册服务或直接实例化构建器
-3. 构建写入帧，发送到设备
-4. 构建读取请求，读取设备数据
-5. 解码响应数据为协议结构体
+// 2. 创建构建器
+var schema = new ProtocolSchema<MotorProtocol>(
+    booleanType: BooleanRepresentation.Int16,
+    endianness: Endianness.BigEndian
+);
+var builder = new ModbusFrameBuilder<MotorProtocol>(schema);
 
-### 5.2 场景二：IO 点位控制
+// 3. 构建写入帧
+var writeFrame = builder.BuildWriteFrame(p => p.Speed, 1500);
+// writeFrame.StartAddress = 100
+// writeFrame.Data = [0x00, 0x00, 0x05, 0xDC]  // 1500 的大端字节
 
-**描述**：控制数字 IO 模块的输入/输出点位。
+// 4. 构建读取请求
+var readRequest = builder.BuildReadRequest();
+// 发送读取命令，获取 byte[] 响应
 
-**流程**：
-1. 定义 DI/DO 协议结构体（仅包含 bool 字段）
-2. 使用位帧构建器
-3. 批量设置多个 DO 点位
-4. 读取 DI 点位状态
+// 5. 解码响应
+MotorProtocol motor = builder.Codec.Decode(responseBytes);
+Console.WriteLine($"Speed: {motor.Speed}, Temp: {motor.Temperature}");
+```
 
-### 5.3 场景三：批量参数下发
+### 5.2 原生协议示例（IO 点位）
 
-**描述**：一次性下发多个参数到设备。
+```csharp
+// 1. 定义协议
+public struct IOModule
+{
+    [Address(0)] public bool DI0 { get; set; }
+    [Address(1)] public bool DI1 { get; set; }
+    [Address(8)] public bool DO0 { get; set; }
+    [Address(9)] public bool DO1 { get; set; }
+}
 
-**流程**：
-1. 使用数据映射批量添加参数
-2. 调用 `BuildOptimized()` 生成优化后的帧
-3. 依次发送各帧到设备
+// 2. 创建构建器
+var schema = new ProtocolSchema<IOModule>();
+var builder = new BitFrameBuilder<IOModule>(schema);
+
+// 3. 写入单个点位
+var frame = builder.BuildWriteFrame(p => p.DO0, true);
+// frame.StartAddress = 8
+// frame.Data = [true]
+
+// 4. 解码 IO 状态
+bool[] ioStatus = ReadFromDevice();  // 从设备读取
+IOModule module = builder.Codec.Decode(ioStatus);
+Console.WriteLine($"DI0: {module.DI0}, DO0: {module.DO0}");
+```
 
 ---
 
 ## 6. 约束与限制
 
-1. 协议结构体必须是值类型（`struct`）
-2. 协议字段必须是 `unmanaged` 类型
-3. 地址必须显式标记，不支持自动推断
-4. 不包含通信层实现，仅负责帧的构建和数据编解码
+1. **结构体约束**：协议类型必须是 `struct`
+2. **类型约束**：字段必须是 `unmanaged` 类型
+3. **地址显式标记**：必须使用 `[Address]` 特性标记字段
+4. **通信层分离**：本库仅负责帧构建和编解码，不包含实际通信
 
 ---
 
@@ -363,12 +358,10 @@ BitReadRequest                   - IO 位读取请求
 
 | 术语 | 定义 |
 |------|------|
-| 帧 (Frame) | 一个完整的通信数据单元 |
-| 协议 (Protocol) | 定义数据结构和地址映射的结构体 |
-| 编码 (Encode) | 将结构体转换为字节/位数组 |
-| 解码 (Decode) | 将字节/位数组转换为结构体 |
-| 寄存器 (Register) | Modbus 中的 16 位数据单元 |
-| 字节序 (Endianness) | 多字节数据的存储顺序 |
+| 地址映射 | 将抽象地址（数字）与具体字段名建立对应关系 |
+| 类型转换 | 将值类型（int、float 等）与字节数组相互转换 |
+| 帧 | 一个完整的通信数据单元，包含地址和数据 |
+| 字节序 | 多字节数据的存储顺序（大端/小端） |
 
 ---
 
@@ -376,4 +369,4 @@ BitReadRequest                   - IO 位读取请求
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| 1.0 | 2025-12 | 初始版本，支持 Modbus 字节帧和 IO 位帧 |
+| 1.0 | 2025-12 | 初始版本 |

@@ -9,13 +9,13 @@ namespace MessageToolkit.Tests;
 public sealed class ProtocolTests
 {
     private readonly IProtocolSchema<DemoProtocol> _schema;
-    private readonly ProtocolCodec<DemoProtocol> _codec;
+    private readonly ByteProtocolCodec<DemoProtocol> _codec;
     private readonly ModbusFrameBuilder<DemoProtocol> _builder;
 
     public ProtocolTests()
     {
         _schema = new ProtocolSchema<DemoProtocol>(BooleanRepresentation.Int16, Endianness.BigEndian);
-        _codec = new ProtocolCodec<DemoProtocol>(_schema);
+        _codec = new ByteProtocolCodec<DemoProtocol>(_schema);
         _builder = new ModbusFrameBuilder<DemoProtocol>(_schema, _codec);
     }
 
@@ -28,7 +28,7 @@ public sealed class ProtocolTests
 
         var boolField = _schema.GetFieldInfo(nameof(DemoProtocol.IsRunning));
         Assert.Equal(2, boolField.Size);
-        Assert.Equal(108, boolField.ByteAddress);
+        Assert.Equal(108, boolField.Address);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class ProtocolTests
         var modbusRequest = (ModbusReadRequest)readAll;
 
         Assert.Equal((ushort)_schema.StartAddress, modbusRequest.StartAddress);
-        Assert.Equal((ushort)_schema.RegisterCount, modbusRequest.RegisterCount);
+        Assert.Equal((ushort)(_schema.TotalSize / 2), modbusRequest.RegisterCount);
         Assert.Equal(_schema.TotalSize, modbusRequest.ByteCount);
     }
 
@@ -117,9 +117,9 @@ public sealed class ProtocolTests
     }
 
     [Fact]
-    public void BatchBuilder_Should_Combine_Contiguous_Addresses()
+    public void DataMapping_Should_Combine_Contiguous_Addresses()
     {
-        var mapping = (ModbusBatchFrameBuilder<DemoProtocol>)_builder.CreateDataMapping();
+        var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
         var frames = mapping
             .Property(p => p.Speed, 10)
             .Property(p => p.Temperature, 20.5f)
@@ -135,9 +135,9 @@ public sealed class ProtocolTests
     }
 
     [Fact]
-    public void BatchBuilder_Should_Not_Combine_NonContiguous_Addresses()
+    public void DataMapping_Should_Not_Combine_NonContiguous_Addresses()
     {
-        var mapping = (ModbusBatchFrameBuilder<DemoProtocol>)_builder.CreateDataMapping();
+        var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
         var frames = mapping
             .Property(p => p.Speed, 10)          // 地址 100, 4 bytes
             .Property(p => p.IsRunning, true)    // 地址 108, 2 bytes (跳过 Temperature)
@@ -150,9 +150,9 @@ public sealed class ProtocolTests
     }
 
     [Fact]
-    public void BatchBuilder_Clear_Should_Reset()
+    public void DataMapping_Clear_Should_Reset()
     {
-        var mapping = (ModbusBatchFrameBuilder<DemoProtocol>)_builder.CreateDataMapping();
+        var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
         mapping.Property(p => p.Speed, 10);
         Assert.Equal(1, mapping.Count);
 
@@ -177,13 +177,9 @@ public sealed class ProtocolTests
     [Fact]
     public void ReadRequest_Static_Factory_Methods()
     {
-        var holdingRequest = ModbusReadRequest.ReadHoldingRegisters(100, 10);
-        Assert.Equal((ushort)100, holdingRequest.StartAddress);
-        Assert.Equal((ushort)10, holdingRequest.RegisterCount);
-
-        var inputRequest = ModbusReadRequest.ReadInputRegisters(200, 5);
-        Assert.Equal((ushort)200, inputRequest.StartAddress);
-        Assert.Equal((ushort)5, inputRequest.RegisterCount);
+        var request = new ModbusReadRequest(100, 10);
+        Assert.Equal((ushort)100, request.StartAddress);
+        Assert.Equal((ushort)10, request.RegisterCount);
     }
 
     private struct DemoProtocol

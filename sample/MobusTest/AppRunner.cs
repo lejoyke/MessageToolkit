@@ -1,4 +1,5 @@
 using FluentModbus;
+using MessageToolkit;
 using MessageToolkit.Abstractions;
 using MessageToolkit.Models;
 using MobusTest.Models;
@@ -8,7 +9,7 @@ namespace MobusTest;
 
 public sealed class AppRunner : IDisposable
 {
-    private readonly IFrameBuilder<DeviceProtocol, byte> _builder;
+    private readonly ModbusFrameBuilder<DeviceProtocol> _builder;
     private readonly ModbusTcpClient _client = new();
     private TargetConfig _config = new("127.0.0.1", 502, 1);
     private DeviceProtocol _current = new()
@@ -19,7 +20,7 @@ public sealed class AppRunner : IDisposable
         Status = 1
     };
 
-    public AppRunner(IFrameBuilder<DeviceProtocol, byte> builder)
+    public AppRunner(ModbusFrameBuilder<DeviceProtocol> builder)
     {
         _builder = builder;
     }
@@ -140,7 +141,7 @@ public sealed class AppRunner : IDisposable
     private void ReadField<T>(Expression<Func<DeviceProtocol, T>> selector, string label) where T : unmanaged
     {
         // 使用新的 BuildReadRequest 方法，直接获取寄存器数量
-        var request = (ModbusReadRequest)_builder.BuildReadRequest(selector);
+        var request = _builder.BuildReadRequest(selector);
 
         if (request.RegisterCount == 0)
         {
@@ -149,7 +150,8 @@ public sealed class AppRunner : IDisposable
         }
 
         var raw = _client.ReadHoldingRegisters(_config.UnitId, request.RegisterAddress, request.RegisterCount);
-        var value = _builder.Codec.DecodeValue<T>(raw);
+        var codec = (ByteProtocolCodec<DeviceProtocol>)_builder.Codec;
+        var value = codec.DecodeValue<T>(raw);
         Console.WriteLine($"读取结果 {label}: {value}");
     }
 

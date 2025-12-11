@@ -14,7 +14,7 @@ public class ProtocolCodecBenchmarks
 {
     private IProtocolSchema<TestProtocol> _schema = null!;
     private OldProtocolCodec<TestProtocol> _oldCodec = null!;
-    private ProtocolCodec<TestProtocol> _newCodec = null!;
+    private ByteProtocolCodec<TestProtocol> _newCodec = null!;
     private TestProtocol _testData;
     private byte[] _encodedData = null!;
 
@@ -23,7 +23,7 @@ public class ProtocolCodecBenchmarks
     {
         _schema = new ProtocolSchema<TestProtocol>(BooleanRepresentation.Int16, Endianness.BigEndian);
         _oldCodec = new OldProtocolCodec<TestProtocol>(_schema);
-        _newCodec = new ProtocolCodec<TestProtocol>(_schema);
+        _newCodec = new ByteProtocolCodec<TestProtocol>(_schema);
 
         _testData = new TestProtocol
         {
