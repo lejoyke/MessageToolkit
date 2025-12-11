@@ -5,7 +5,7 @@ using MessageToolkit.Models;
 using MobusTest;
 
 var services = new ServiceCollection()
-    .AddByteProtocol<DeviceProtocol>(
+    .AddModbusProtocol<DeviceProtocol>(
         booleanType: BooleanRepresentation.Int16,
         endianness: Endianness.BigEndian)
     .AddSingleton<AppRunner>();

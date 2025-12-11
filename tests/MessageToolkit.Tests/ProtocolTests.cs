@@ -121,10 +121,10 @@ public sealed class ProtocolTests
     {
         var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
         var frames = mapping
-            .Property(p => p.Speed, 10)
-            .Property(p => p.Temperature, 20.5f)
-            .Property(p => p.IsRunning, true)
-            .Property(p => p.Status, (short)2)
+            .Write(p => p.Speed, 10)
+            .Write(p => p.Temperature, 20.5f)
+            .Write(p => p.IsRunning, true)
+            .Write(p => p.Status, (short)2)
             .BuildOptimized()
             .ToArray();
 
@@ -139,8 +139,8 @@ public sealed class ProtocolTests
     {
         var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
         var frames = mapping
-            .Property(p => p.Speed, 10)          // 地址 100, 4 bytes
-            .Property(p => p.IsRunning, true)    // 地址 108, 2 bytes (跳过 Temperature)
+            .Write(p => p.Speed, 10)          // 地址 100, 4 bytes
+            .Write(p => p.IsRunning, true)    // 地址 108, 2 bytes (跳过 Temperature)
             .BuildOptimized()
             .ToArray();
 
@@ -153,7 +153,7 @@ public sealed class ProtocolTests
     public void DataMapping_Clear_Should_Reset()
     {
         var mapping = (ModbusDataMapping<DemoProtocol>)_builder.CreateDataMapping();
-        mapping.Property(p => p.Speed, 10);
+        mapping.Write(p => p.Speed, 10);
         Assert.Equal(1, mapping.Count);
 
         mapping.Clear();

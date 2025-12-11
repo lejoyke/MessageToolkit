@@ -150,7 +150,7 @@ public sealed class AppRunner : IDisposable
         }
 
         var raw = _client.ReadHoldingRegisters(_config.UnitId, request.RegisterAddress, request.RegisterCount);
-        var codec = (ByteProtocolCodec<DeviceProtocol>)_builder.Codec;
+        var codec = _builder.Codec;
         var value = codec.DecodeValue<T>(raw);
         Console.WriteLine($"读取结果 {label}: {value}");
     }

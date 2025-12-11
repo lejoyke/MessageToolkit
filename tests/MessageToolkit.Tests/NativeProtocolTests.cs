@@ -117,8 +117,8 @@ public sealed class NativeProtocolTests
         var mapping = _builder.CreateDataMapping();
         
         var frames = mapping
-            .Property(p => p.DO0, true)
-            .Property(p => p.DO1, false)
+            .Write(p => p.DO0, true)
+            .Write(p => p.DO1, false)
             .Build()
             .ToArray();
 
@@ -131,8 +131,8 @@ public sealed class NativeProtocolTests
         var mapping = _builder.CreateDataMapping();
         
         var frames = mapping
-            .Property(p => p.DO0, true)   // address 8
-            .Property(p => p.DO1, false)  // address 9
+            .Write(p => p.DO0, true)   // address 8
+            .Write(p => p.DO1, false)  // address 9
             .BuildOptimized()
             .ToArray();
 
@@ -148,8 +148,8 @@ public sealed class NativeProtocolTests
         var mapping = _builder.CreateDataMapping();
         
         var frames = mapping
-            .Property(p => p.DI0, true)   // address 0
-            .Property(p => p.DO0, true)   // address 8 (not contiguous)
+            .Write(p => p.DI0, true)   // address 0
+            .Write(p => p.DO0, true)   // address 8 (not contiguous)
             .BuildOptimized()
             .ToArray();
 
